@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Entrar — {{ config('app.name') }}</title>
+    <title>Entrar — Club Nada Óbvio</title>
     <style>
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
 
@@ -84,7 +84,7 @@
 </head>
 <body>
     <div class="card">
-        <h1>{{ config('app.name') }}</h1>
+        <h1>Club Nada Óbvio</h1>
         <p class="subtitle">Acesse sua área de membros</p>
 
         <form method="POST" action="{{ route('login.post') }}">
