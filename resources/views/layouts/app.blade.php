@@ -70,7 +70,7 @@
 </head>
 <body>
     <nav class="navbar">
-        <a href="{{ route('dashboard') }}" class="navbar-brand">{{ config('app.name') }}</a>
+        <a href="{{ route('dashboard') }}" class="navbar-brand">Club Nada Óbvio</a>
         <div class="navbar-right">
             <span class="navbar-user">{{ session('user.nome') }}</span>
             <form method="POST" action="{{ route('logout') }}">
