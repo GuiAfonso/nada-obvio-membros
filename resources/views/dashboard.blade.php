@@ -174,22 +174,46 @@
         color: #bbb;
         font-size: 0.9rem;
     }
+
+    /* ── Avaliação ─────────────────────────────── */
+    .review-box { margin-top: 0.25rem; border-top: 1px solid #f0f0f0; padding-top: 0.75rem; }
+    .review-box summary { cursor: pointer; font-size: 0.8rem; color: #666; font-weight: 600; }
+    .review-box form { margin-top: 0.75rem; display: flex; flex-direction: column; gap: 0.5rem; }
+    .review-label { font-size: 0.75rem; color: #999; font-weight: 600; }
+    .review-stars { display: flex; gap: 0.5rem; font-size: 0.8rem; }
+    .review-stars label { display: flex; align-items: center; gap: 0.2rem; cursor: pointer; }
+    .review-tags { display: flex; flex-wrap: wrap; gap: 0.4rem; }
+    .review-tag-option { display: flex; align-items: center; gap: 0.25rem; font-size: 0.75rem; color: #555; background: #f5f5f3; padding: 0.2rem 0.5rem; border-radius: 6px; cursor: pointer; }
+    .btn-review-submit {
+        align-self: flex-start;
+        background: #1a1a1a;
+        color: #fff;
+        border: none;
+        padding: 0.4rem 0.9rem;
+        border-radius: 6px;
+        font-size: 0.78rem;
+        cursor: pointer;
+        margin-top: 0.25rem;
+    }
 </style>
 @endsection
 
 @section('content')
     @php
-        $rows = collect($suppliers)->map(function ($item) {
-            $p = $item['properties'];
+        $destaquesCatalog = config('suppliers.destaques');
+        $rows = $suppliers->map(function ($supplier) use ($user, $destaquesCatalog) {
             return [
-                'nome'      => $p['Nome do fornecedor']['title'][0]['plain_text'] ?? '',
-                'categoria' => $p['Categoria']['select'] ?? null,
-                'cidade'    => $p['Cidade / Região (padrão)']['select']['name'] ?? ($p['Cidade / Região de atuação']['rich_text'][0]['plain_text'] ?? ''),
-                'whatsapp'  => $p['Qual WhatsApp você usa pra falar com esse fornecedor?']['phone_number'] ?? '',
-                'destaques' => collect($p['Destaques (comunidade)']['rollup']['array'] ?? [])->pluck('multi_select')->flatten(1)->all(),
-                'nota'      => $p['Nota média (comunidade)']['rollup']['number'] ?? null,
+                'supplier'   => $supplier,
+                'nome'       => $supplier->nome,
+                'categoria'  => $supplier->categoria ? ['name' => $supplier->categoria, 'color' => $supplier->categoria_color ?? 'default'] : null,
+                'cidade'     => $supplier->cidade,
+                'whatsapp'   => $supplier->whatsapp,
+                'destaques'  => $supplier->topDestaques(),
+                'nota'       => $supplier->reviews_avg_nota,
+                'minhaAvaliacao' => $supplier->reviews->firstWhere('user_id', $user->id),
+                'destaquesCatalog' => $destaquesCatalog,
             ];
-        })->filter(fn($r) => $r['nome'] !== '')->values();
+        })->filter(fn ($r) => $r['nome'] !== '')->values();
     @endphp
 
     <div class="page-header">
@@ -263,6 +287,33 @@
                         </div>
                     @endif
                 </div>
+
+                <details class="review-box">
+                    <summary>{{ $row['minhaAvaliacao'] ? 'Editar minha avaliação' : 'Avaliar fornecedor' }}</summary>
+                    <form method="POST" action="{{ route('suppliers.review', $row['supplier']) }}">
+                        @csrf
+                        <label class="review-label">Nota</label>
+                        <div class="review-stars">
+                            @for ($i = 1; $i <= 5; $i++)
+                                <label>
+                                    <input type="radio" name="nota" value="{{ $i }}" @checked(optional($row['minhaAvaliacao'])->nota === $i) required>
+                                    {{ $i }}
+                                </label>
+                            @endfor
+                        </div>
+                        <label class="review-label">Destaques</label>
+                        <div class="review-tags">
+                            @foreach ($row['destaquesCatalog'] as $key => $tag)
+                                <label class="review-tag-option">
+                                    <input type="checkbox" name="destaques[]" value="{{ $key }}"
+                                        @checked(in_array($key, optional($row['minhaAvaliacao'])->destaques ?? []))>
+                                    {{ $tag['label'] }}
+                                </label>
+                            @endforeach
+                        </div>
+                        <button type="submit" class="btn-review-submit">Enviar avaliação</button>
+                    </form>
+                </details>
             </div>
         @empty
             <div class="empty">Nenhum fornecedor encontrado.</div>

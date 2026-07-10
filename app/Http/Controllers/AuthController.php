@@ -2,16 +2,14 @@
 
 namespace App\Http\Controllers;
 
-use App\Services\NotionService;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
 {
-    public function __construct(private NotionService $notion) {}
-
     public function showLogin()
     {
-        if (session()->has('user')) {
+        if (Auth::check()) {
             return redirect()->route('dashboard');
         }
 
@@ -25,43 +23,34 @@ class AuthController extends Controller
             'senha' => 'required',
         ], [
             'email.required' => 'Informe seu e-mail.',
-            'email.email'    => 'E-mail inválido.',
+            'email.email' => 'E-mail inválido.',
             'senha.required' => 'Informe sua senha.',
         ]);
 
-        $user = $this->notion->findUserByEmail($request->email);
+        $credentials = [
+            'email' => $request->email,
+            'password' => $request->senha,
+        ];
 
-        if (! $user) {
-            return back()->withErrors(['email' => 'Usuário não encontrado.'])->withInput();
+        if (! Auth::attempt($credentials)) {
+            return back()->withErrors(['email' => 'E-mail ou senha inválidos.'])->withInput();
         }
 
-        $properties = $user['properties'] ?? [];
+        if (! Auth::user()->ativo) {
+            Auth::logout();
 
-        $ativo = $properties['Ativo']['checkbox'] ?? false;
-        if (! $ativo) {
             return back()->withErrors(['email' => 'Sua conta está inativa. Entre em contato com o suporte.'])->withInput();
         }
 
-        $senhaNotion = $properties['Senha']['rich_text'][0]['plain_text'] ?? '';
-        if ($request->senha !== $senhaNotion) {
-            return back()->withErrors(['senha' => 'Senha incorreta.'])->withInput();
-        }
-
-        $nome = $properties['Nome']['title'][0]['plain_text'] ?? 'Membro';
-        $email = $properties['email']['email'] ?? $request->email;
-
         $request->session()->regenerate();
-        $request->session()->put('user', [
-            'id'    => $user['id'],
-            'nome'  => $nome,
-            'email' => $request->email,
-        ]);
 
         return redirect()->route('dashboard');
     }
 
     public function logout(Request $request)
     {
+        Auth::logout();
+
         $request->session()->invalidate();
         $request->session()->regenerateToken();
 

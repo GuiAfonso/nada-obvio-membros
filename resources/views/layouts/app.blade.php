@@ -72,7 +72,7 @@
     <nav class="navbar">
         <a href="{{ route('dashboard') }}" class="navbar-brand">Club Nada Óbvio</a>
         <div class="navbar-right">
-            <span class="navbar-user">{{ session('user.nome') }}</span>
+            <span class="navbar-user">{{ auth()->user()->name }}</span>
             <form method="POST" action="{{ route('logout') }}">
                 @csrf
                 <button type="submit" class="btn-logout">Sair</button>
